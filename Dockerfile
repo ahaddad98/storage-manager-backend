@@ -13,12 +13,10 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock* ./
 
-RUN poetry install --no-ansi --no-root
+RUN poetry install --only main --no-ansi --no-root
 
 COPY . .
 
-RUN poetry install --no-ansi
-
 EXPOSE 8005
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8005", "--reload"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8005"]

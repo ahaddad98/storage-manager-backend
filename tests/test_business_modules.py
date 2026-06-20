@@ -3,6 +3,11 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException, status
 
+from app.catalog.presets import (
+    get_catalog_metadata,
+    get_inventory_starter_items,
+    get_treatment_templates,
+)
 from core.business_modules import (
     BusinessType,
     ModuleKey,
@@ -36,15 +41,39 @@ def test_non_dental_defaults_hide_dental_workflows(business_type: str) -> None:
     assert ModuleKey.APPOINTMENTS not in modules
     assert ModuleKey.INVENTORY in modules
     assert ModuleKey.BILLING in modules
+    assert ModuleKey.CATALOG in modules
 
 
 def test_module_overrides_cannot_enable_unsupported_business_modules() -> None:
     modules = resolve_enabled_modules(
         BusinessType.PHONE_STORE,
-        [ModuleKey.INVENTORY, ModuleKey.DENTAL_CHART, "unknown"],
+        [ModuleKey.INVENTORY, ModuleKey.CATALOG, ModuleKey.DENTAL_CHART, "unknown"],
     )
 
-    assert modules == [ModuleKey.INVENTORY]
+    assert modules == [ModuleKey.INVENTORY, ModuleKey.CATALOG]
+
+
+def test_phone_store_catalog_contains_phone_store_products_only() -> None:
+    items = get_inventory_starter_items(BusinessType.PHONE_STORE)
+    categories = {item["category"] for item in items}
+
+    assert {"Phones", "Accessories", "Chargers", "Cables", "Screen protectors"} <= categories
+    assert get_treatment_templates(BusinessType.PHONE_STORE) == []
+
+
+def test_droguerie_catalog_contains_shared_retail_products_only() -> None:
+    items = get_inventory_starter_items(BusinessType.DROGUERIE)
+    categories = {item["category"] for item in items}
+
+    assert {"Hardware products", "Household products", "Tools", "Consumables"} <= categories
+    assert get_treatment_templates(BusinessType.DROGUERIE) == []
+
+
+def test_dental_catalog_preserves_treatment_templates() -> None:
+    metadata = get_catalog_metadata(BusinessType.DENTAL_CLINIC)
+
+    assert "dentaire" in metadata["title"]
+    assert get_treatment_templates(BusinessType.DENTAL_CLINIC)
 
 
 def test_tenant_context_denies_inaccessible_clinic() -> None:

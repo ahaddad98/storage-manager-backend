@@ -31,11 +31,7 @@ def get_preset_catalog_service(
 async def get_preset_catalog(
     _user: Annotated[
         dict,
-        Depends(
-            require_any_permission(
-                [Permission.INVENTORY_READ, Permission.TREATMENTS_READ]
-            )
-        ),
+        Depends(require_any_permission([Permission.INVENTORY_READ, Permission.TREATMENTS_READ])),
     ],
     service: Annotated[PresetCatalogService, Depends(get_preset_catalog_service)],
 ) -> PresetCatalogResponse:

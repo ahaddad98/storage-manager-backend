@@ -49,7 +49,6 @@ SUPPORTED_MODULES = {
     ModuleKey.SETTINGS,
     ModuleKey.DOCUMENTS,
     ModuleKey.NOTIFICATIONS,
-    ModuleKey.CATALOG,
 }
 
 DENTAL_DEFAULT_MODULES = [
@@ -60,19 +59,20 @@ DENTAL_DEFAULT_MODULES = [
     ModuleKey.TREATMENTS,
     ModuleKey.BILLING,
     ModuleKey.INVENTORY,
+    ModuleKey.CATALOG,
     ModuleKey.REPORTS,
     ModuleKey.STAFF,
     ModuleKey.CLINICS,
     ModuleKey.SETTINGS,
     ModuleKey.DOCUMENTS,
     ModuleKey.NOTIFICATIONS,
-    ModuleKey.CATALOG,
 ]
 
 SHARED_DEFAULT_MODULES = [
     ModuleKey.DASHBOARD,
     ModuleKey.BILLING,
     ModuleKey.INVENTORY,
+    ModuleKey.CATALOG,
     ModuleKey.REPORTS,
     ModuleKey.STAFF,
     ModuleKey.CLINICS,

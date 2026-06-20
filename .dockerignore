@@ -1,7 +1,14 @@
 .git
 .venv
+node_modules
 __pycache__
 *.pyc
 .pytest_cache
 .mypy_cache
 .env
+dist
+build
+.next/cache
+coverage
+logs
+*.log
