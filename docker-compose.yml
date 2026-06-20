@@ -1,61 +1,60 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: ma-cabinet-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-ma_cabinet}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ma_cabinet}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - ma-cabinet-network
-
-  backend:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ma-cabinet-backend
-    restart: unless-stopped
-    command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+    container_name: infood-api
+    restart: always
     env_file:
       - .env
+    expose:
+      - "8005"
     ports:
-      - "8005:8005"
-    volumes:
-      - .:/app
+      - "127.0.0.1:${BACKEND_PORT:-8005}:8005"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health', timeout=5)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
-      - ma-cabinet-network
+      - infood-network
 
-  adminer:
-    image: adminer:4
-    container_name: ma-cabinet-adminer
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
+  db:
+    image: postgres:16-alpine
+    container_name: infood-db
+    restart: always
+    env_file:
+      - .env
     environment:
-      ADMINER_DEFAULT_SERVER: db
-    depends_on:
-      db:
-        condition: service_healthy
+      POSTGRES_USER: ${POSTGRES_USER:-ma_cabinet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-ma_cabinet}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-ma_cabinet} -d ${POSTGRES_DB:-ma_cabinet}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
-      - ma-cabinet-network
+      - infood-network
 
 networks:
-  ma-cabinet-network:
-    name: ma-cabinet-network
-    driver: bridge
+  infood-network:
+    name: infood-network
+    external: true
 
 volumes:
   postgres_data:

@@ -1,12 +1,12 @@
 .PHONY: up down fclean rebuild migrate migration seed logs status shell test check help
 
 COMPOSE = docker compose
-BACKEND = $(COMPOSE) exec backend
+BACKEND = $(COMPOSE) exec app
 
 up:
 	@test -f .env || cp .env.example .env
+	@docker network create infood-network >/dev/null 2>&1 || true
 	$(COMPOSE) up -d --build
-	$(MAKE) migrate
 
 down:
 	$(COMPOSE) down
@@ -16,8 +16,8 @@ fclean:
 
 rebuild:
 	$(COMPOSE) down
+	@docker network create infood-network >/dev/null 2>&1 || true
 	$(COMPOSE) up -d --build
-	$(MAKE) migrate
 
 migrate:
 	$(BACKEND) alembic upgrade head
@@ -29,7 +29,7 @@ seed:
 	$(BACKEND) python -m scripts.seed
 
 logs:
-	$(COMPOSE) logs -f backend
+	$(COMPOSE) logs -f app
 
 status:
 	$(COMPOSE) ps
@@ -38,7 +38,7 @@ shell:
 	$(BACKEND) /bin/bash
 
 test:
-	$(BACKEND) pytest -v
+	poetry run pytest -v
 
 check:
 	@curl -sf http://localhost:8005/health && echo "\nHealth check OK" || (echo "Health check FAILED" && exit 1)

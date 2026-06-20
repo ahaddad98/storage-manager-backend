@@ -1,0 +1,65 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy backend to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            cd "${{ secrets.APP_DIR }}"
+
+            if [ ! -d .git ]; then
+              echo "APP_DIR must point to the backend repository clone."
+              exit 1
+            fi
+
+            git fetch --prune origin
+            git checkout main
+            git pull --ff-only origin main
+
+            if [ ! -f .env ]; then
+              echo "Backend production .env is missing in ${{ secrets.APP_DIR }}."
+              echo "Create it once from .env.example and replace all secrets/placeholders before deploying."
+              exit 1
+            fi
+
+            docker network create infood-network >/dev/null 2>&1 || true
+
+            BACKEND_PORT="$(awk -F= '/^BACKEND_PORT=/{print $2}' .env | tail -n 1 | tr -d '\"[:space:]' || true)"
+            BACKEND_PORT="${BACKEND_PORT:-8005}"
+
+            docker compose pull || true
+            docker compose down
+            docker compose up -d --build
+            docker image prune -f
+
+            docker compose ps
+
+            for attempt in $(seq 1 30); do
+              if curl -fsS "http://localhost:${BACKEND_PORT}/health"; then
+                echo "Backend deployment health check passed."
+                exit 0
+              fi
+
+              echo "Waiting for backend health check (${attempt}/30)..."
+              sleep 2
+            done
+
+            docker compose logs --tail=120
+            echo "Backend deployment health check failed."
+            exit 1

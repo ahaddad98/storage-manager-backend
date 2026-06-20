@@ -72,6 +72,62 @@ This will:
 - **Health Check**: http://localhost:8005/health
 - **Items API**: http://localhost:8005/api/items
 
+## Production Deployment
+
+This backend repository deploys independently to:
+
+```text
+/home/ubuntu/apps/infood-app/backend
+```
+
+GitHub Actions workflow:
+
+```text
+.github/workflows/deploy.yml
+```
+
+Required GitHub repository secrets:
+
+| Secret | Value |
+|--------|-------|
+| `EC2_HOST` | EC2 public hostname or IP |
+| `EC2_USER` | SSH user, for example `ubuntu` |
+| `EC2_SSH_KEY` | Private SSH key |
+| `APP_DIR` | `/home/ubuntu/apps/infood-app/backend` |
+
+Production files:
+
+- `Dockerfile`: installs production Python dependencies and starts FastAPI on `0.0.0.0:8005`.
+- `docker-compose.yml`: runs `infood-api` and PostgreSQL, binding the backend only to `127.0.0.1:${BACKEND_PORT:-8005}`.
+- `.env.example`: template for production env values.
+
+Create the production env once on EC2:
+
+```bash
+cd /home/ubuntu/apps/infood-app/backend
+cp .env.example .env
+nano .env
+```
+
+Replace all placeholders, especially `POSTGRES_PASSWORD`, `DATABASE_URL`, `JWT_SECRET_KEY`, and `CORS_ORIGINS`.
+
+Manual deploy:
+
+```bash
+cd /home/ubuntu/apps/infood-app/backend
+docker network create infood-network || true
+git pull --ff-only origin main
+docker compose up -d --build
+curl -f http://localhost:8005/health
+```
+
+Logs and restart:
+
+```bash
+docker compose logs -f app
+docker compose restart app
+```
+
 ## Makefile Commands
 
 | Command | Description |
